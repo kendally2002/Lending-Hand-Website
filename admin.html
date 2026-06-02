@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lending Hand Rentals — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F0F2F5;
+      --white: #FFFFFF;
+      --navy: #0E2340;
+      --navy-light: #1A3A5C;
+      --blue: #1B4B82;
+      --blue-light: #2B6CB0;
+      --accent: #4A90C4;
+      --sand: #D8E0EA;
+      --muted: #4A6080;
+      --green: #2E7D32;
+      --green-bg: #E8F5E9;
+      --red: #b71c1c;
+      --red-bg: #fce8e8;
+      --yellow: #F57F17;
+      --yellow-bg: #FFF8E1;
+      --radius: 12px;
+      --shadow: 0 2px 16px rgba(14,35,64,0.08);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* ── LAYOUT ── */
+    .app { display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--navy);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      z-index: 50;
+    }
+    .sidebar-logo {
+      padding: 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-logo .brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .sidebar-logo .sub {
+      font-size: 0.65rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .sidebar-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      padding: 1.25rem 1.5rem 0.5rem;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.15s, color 0.15s;
+      text-decoration: none;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .nav-item.active { background: var(--blue); color: #fff; }
+    .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-bottom a {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.82rem; color: rgba(255,255,255,0.5);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .sidebar-bottom a:hover { color: #fff; }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1.5px solid var(--sand);
+      padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 40;
+    }
+    .topbar h1 { font-size: 1.1rem; font-weight: 600; color: var(--navy); }
+    .topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+    .save-indicator {
+      font-size: 0.78rem; color: var(--green);
+      display: none; align-items: center; gap: 0.4rem;
+    }
+    .save-indicator.show { display: flex; }
+
+    /* ── CONTENT ── */
+    .content { padding: 2rem; flex: 1; }
+
+    /* ── TABS ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1.5px solid var(--sand);
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1.5px solid var(--sand);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h2 { font-size: 1rem; font-weight: 600; }
+    .card-header p { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+    .card-body { padding: 1.5rem; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .form-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .field { display: flex; flex-direction: column; gap: 0.4rem; }
+    .field label {
+      font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .field input, .field select, .field textarea {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; color: var(--navy);
+      background: var(--bg);
+      border: 1.5px solid var(--sand);
+      border-radius: 8px; padding: 0.65rem 0.9rem;
+      width: 100%; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(27,75,130,0.1);
+      background: var(--white);
+    }
+    .field select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A6080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.9rem center; background-size: 11px;
+      padding-right: 2.25rem; background-color: var(--bg);
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+
+    /* ── TOGGLE ── */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.85rem 0; border-bottom: 1px solid var(--sand);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 0.88rem; font-weight: 500; }
+    .toggle-desc { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+    .toggle {
+      position: relative; width: 44px; height: 24px; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--sand); border-radius: 24px;
+      cursor: pointer; transition: background 0.25s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: white; border-radius: 50%;
+      transition: transform 0.25s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--blue); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px; border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; font-weight: 600;
+      transition: all 0.2s; text-decoration: none;
+    }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-light); transform: translateY(-1px); }
+    .btn-outline { background: none; border: 1.5px solid var(--sand); color: var(--navy); }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-danger { background: var(--red-bg); color: var(--red); border: 1.5px solid #f5c6c6; }
+    .btn-danger:hover { background: #f5c6c6; }
+    .btn-success { background: var(--green-bg); color: var(--green); border: 1.5px solid #c8e6c9; }
+    .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.78rem; }
+    .btn-icon { padding: 0.4rem 0.6rem; }
+
+    /* ── LISTING EDITOR ── */
+    .listing-item {
+      background: var(--bg);
+      border: 1.5px solid var(--sand);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .listing-item-header {
+      display: flex; align-items: center;
+      padding: 1rem 1.25rem;
+      cursor: pointer; gap: 1rem;
+      background: var(--white);
+      border-bottom: 1.5px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .listing-item.open .listing-item-header { border-color: var(--sand); }
+    .listing-drag { color: var(--muted); cursor: grab; font-size: 1.1rem; }
+    .listing-title-preview { flex: 1; }
+    .listing-title-preview strong { font-size: 0.92rem; }
+    .listing-title-preview span { font-size: 0.78rem; color: var(--muted); display: block; }
+    .status-pill {
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.25rem 0.65rem; border-radius: 20px;
+    }
+    .status-rented { background: var(--red-bg); color: var(--red); }
+    .status-available { background: var(--green-bg); color: var(--green); }
+    .status-soon { background: var(--yellow-bg); color: var(--yellow); }
+    .listing-chevron { font-size: 1rem; color: var(--muted); transition: transform 0.25s; }
+    .listing-item.open .listing-chevron { transform: rotate(180deg); }
+    .listing-item-body { display: none; padding: 1.25rem; }
+    .listing-item.open .listing-item-body { display: block; }
+    .listing-actions { display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1.5px solid var(--sand); margin-top: 1.25rem; }
+
+    /* ── STATS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--white); border: 1.5px solid var(--sand); border-radius: var(--radius); padding: 1.25rem; }
+    .stat-num { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--navy); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ── PREVIEW CHIP ── */
+    .preview-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.8rem; color: var(--blue); text-decoration: none;
+      padding: 0.35rem 0.75rem; border-radius: 6px;
+      background: rgba(27,75,130,0.07); transition: background 0.2s;
+    }
+    .preview-link:hover { background: rgba(27,75,130,0.14); }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 0.85rem 1.1rem; border-radius: 8px;
+      font-size: 0.85rem; margin-bottom: 1.25rem;
+      display: flex; align-items: flex-start; gap: 0.6rem;
+    }
+    .alert-info { background: rgba(27,75,130,0.07); color: var(--blue); border: 1px solid rgba(27,75,130,0.18); }
+    .alert-success { background: var(--green-bg); color: var(--green); border: 1px solid #c8e6c9; }
+
+    /* ── COLOR SWATCH ── */
+    .swatch-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .swatch {
+      width: 36px; height: 36px; border-radius: 50%;
+      cursor: pointer; border: 3px solid transparent;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .swatch.selected, .swatch:hover { border-color: var(--navy); transform: scale(1.12); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-row.thirds { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">Lending Hand Rentals</div>
+      <div class="sub">Admin Panel</div>
+    </div>
+
+    <div class="sidebar-label">Manage</div>
+    <button class="nav-item active" onclick="showTab('dashboard', this)"><span class="icon">📊</span> Dashboard</button>
+    <button class="nav-item" onclick="showTab('listings', this)"><span class="icon">🏠</span> Listings</button>
+    <button class="nav-item" onclick="showTab('hero', this)"><span class="icon">✏️</span> Hero Section</button>
+    <button class="nav-item" onclick="showTab('contact', this)"><span class="icon">📞</span> Contact Info</button>
+    <button class="nav-item" onclick="showTab('banner', this)"><span class="icon">📢</span> Apply Banner</button>
+    <button class="nav-item" onclick="showTab('about', this)"><span class="icon">🤝</span> About Section</button>
+    <button class="nav-item" onclick="showTab('settings', this)"><span class="icon">⚙️</span> Site Settings</button>
+
+    <div class="sidebar-bottom">
+      <a href="lending-hand-rentals.html" target="_blank">🌐 &nbsp;View Live Site →</a>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="topbar-actions">
+        <span class="save-indicator" id="saveIndicator">✅ Saved</span>
+        <button class="btn btn-primary" onclick="saveAll()">💾 Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="tab-panel active" id="tab-dashboard">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Listings</div></div>
+          <div class="stat-card"><div class="stat-num" id="statRented">0</div><div class="stat-label">Currently Rented</div></div>
+          <div class="stat-card"><div class="stat-num" id="statAvailable">0</div><div class="stat-label">Available Now</div></div>
+          <div class="stat-card"><div class="stat-num" id="statSoon">0</div><div class="stat-label">Coming Soon</div></div>
+        </div>
+
+        <div class="alert alert-info">
+          💡 <span>Changes made here are saved to your browser and automatically shown on the live site when you open <strong>lending-hand-rentals.html</strong>. Both files must be in the same folder.</span>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div><h2>Quick Actions</h2><p>Common tasks at a glance</p></div>
+          </div>
+          <div class="card-body" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="showTab('listings', document.querySelector('[onclick=\'showTab(\\\"listings\\\", this)\']'))">➕ Add New Listing</button>
+            <button class="btn btn-outline" onclick="showTab('hero', document.querySelector('[onclick*=hero]'))">✏️ Edit Hero Text</button>
+            <button class="btn btn-outline" onclick="showTab('banner', document.querySelector('[onclick*=banner]'))">📢 Edit Banner</button>
+            <a href="lending-hand-rentals.html" target="_blank" class="btn btn-outline">🌐 View Site</a>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Reset ALL data to defaults?')) { localStorage.clear(); location.reload(); }">🗑️ Reset to Defaults</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div><h2>Recent Listings</h2></div></div>
+          <div class="card-body" id="dashListings" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+        </div>
+      </div>
+
+      <!-- ── LISTINGS ── -->
+      <div class="tab-panel" id="tab-listings">
+        <div class="alert alert-info">
+          💡 <span>Add, edit, or reorder your properties. Toggle the status between Available, Rented, and Coming Soon. All changes appear on the live site after saving.</span>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+          <button class="btn btn-primary" onclick="addListing()">➕ Add New Listing</button>
+        </div>
+        <div id="listingsEditor"></div>
+      </div>
+
+      <!-- ── HERO ── -->
+      <div class="tab-panel" id="tab-hero">
+        <div class="card">
+          <div class="card-header"><div><h2>Hero Section</h2><p>The main banner at the top of your site</p></div></div>
+          <div class="card-body">
+            <div class="form-row full">
+              <div class="field">
+                <label>Eyebrow Text (small label above title)</label>
+                <input type="text" id="heroEyebrow" placeholder="Trusted Rental Property Management" />
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Hero Title</label>
+                <input type="text" id="heroTitle" placeholder="Find Your Next Home with Us" />
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Hero Subtitle / Description</label>
+                <textarea id="heroSub" rows="3" placeholder="We offer quality single-family homes…"></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Primary Button Text</label>
+                <input type="text" id="heroBtnPrimary" placeholder="Start Your Application" />
+              </div>
+              <div class="field">
+                <label>Secondary Button Text</label>
+                <input type="text" id="heroBtnSecondary" placeholder="View Our Properties" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CONTACT ── -->
+      <div class="tab-panel" id="tab-contact">
+        <div class="card">
+          <div class="card-header"><div><h2>Contact Information</h2><p>Shown in the Contact section and footer</p></div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="field">
+                <label>Phone Number</label>
+                <input type="tel" id="contactPhone" placeholder="(555) 000-1234" />
+              </div>
+              <div class="field">
+                <label>Email Address</label>
+                <input type="email" id="contactEmail" placeholder="info@lendinghandrentals.com" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Office Hours</label>
+                <input type="text" id="contactHours" placeholder="Mon–Fri 9am–6pm · Sat 10am–4pm" />
+              </div>
+              <div class="field">
+                <label>Service Area</label>
+                <input type="text" id="contactArea" placeholder="Metro Area & Surrounding Suburbs" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BANNER ── -->
+      <div class="tab-panel" id="tab-banner">
+        <div class="card">
+          <div class="card-header"><div><h2>Apply Now Banner</h2><p>The bold bar at the very top of your site</p></div></div>
+          <div class="card-body">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Show Banner</div>
+                <div class="toggle-desc">Display the Apply Now bar at the top of the page</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="bannerVisible" /><span class="toggle-slider"></span></label>
+            </div>
+            <div style="height:1rem;"></div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Banner Message</label>
+                <input type="text" id="bannerText" placeholder="Ready to rent with us? Submit your application today — we respond within 24 hours." />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Button Text</label>
+                <input type="text" id="bannerBtn" placeholder="Apply Now →" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABOUT ── -->
+      <div class="tab-panel" id="tab-about">
+        <div class="card">
+          <div class="card-header"><div><h2>About Section</h2><p>The dark section describing your company</p></div></div>
+          <div class="card-body">
+            <div class="form-row full">
+              <div class="field">
+                <label>Section Title</label>
+                <input type="text" id="aboutTitle" placeholder="A Landlord You Can Trust" />
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Paragraph 1</label>
+                <textarea id="aboutP1" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Paragraph 2</label>
+                <textarea id="aboutP2" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ── -->
+      <div class="tab-panel" id="tab-settings">
+        <div class="card">
+          <div class="card-header"><div><h2>Site Settings</h2></div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="field">
+                <label>Site / Company Name</label>
+                <input type="text" id="siteName" placeholder="Lending Hand Rentals" />
+              </div>
+              <div class="field">
+                <label>Tagline</label>
+                <input type="text" id="siteTagline" placeholder="Quality Homes & Apartments" />
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="field">
+                <label>Application Response Time (shown in banner & form)</label>
+                <input type="text" id="responseTime" placeholder="24 hours" />
+              </div>
+            </div>
+            <div style="margin-top:1rem;">
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label">Show "All Properties Rented" notice</div>
+                  <div class="toggle-desc">Displays a notice above listings that all units are currently occupied</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="showRentedNotice" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label">Show Filter Buttons on Listings</div>
+                  <div class="toggle-desc">Show All / Single-Family / Apartments filter buttons</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="showFilters" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label">Show Testimonials Section</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="showTestimonials" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <div class="toggle-label">Show How It Works Section</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="showHowItWorks" /><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div><h2>Data Management</h2></div></div>
+          <div class="card-body" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="exportData()">📥 Export Settings (JSON)</button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📤 Import Settings</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)" />
+            <button class="btn btn-danger" onclick="if(confirm('This will reset ALL settings and listings to defaults. Continue?')) { localStorage.clear(); location.reload(); }">🗑️ Reset Everything</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════
+// DATA DEFAULTS
+// ═══════════════════════════════════════════
+const DEFAULTS = {
+  listings: [
+    { id: 1, title: "3BR Oakwood Family Home", type: "single-family", location: "Oakwood Neighborhood", beds: "3", baths: "2", features: "Garage, Yard", rent: "1,650", status: "rented", emoji: "🏡", gradient: "linear-gradient(135deg, #e3eaf4 0%, #d0dae8 100%)" },
+    { id: 2, title: "2BR Riverside Apartment", type: "apartment", location: "Riverside District", beds: "2", baths: "1", features: "Parking, Pool", rent: "1,200", status: "rented", emoji: "🏢", gradient: "linear-gradient(135deg, #dde8f5 0%, #c8d8ec 100%)" },
+    { id: 3, title: "4BR Maplewood Estate", type: "single-family", location: "Maplewood Heights", beds: "4", baths: "2.5", features: "2-Car Garage, Large Yard", rent: "2,100", status: "rented", emoji: "🏠", gradient: "linear-gradient(135deg, #e8eef6 0%, #d5e0ee 100%)" },
+    { id: 4, title: "Studio at Clearview", type: "apartment", location: "Clearview Commons", beds: "Studio", baths: "1", features: "Parking, Gym", rent: "875", status: "rented", emoji: "🏙️", gradient: "linear-gradient(135deg, #d8e4f2 0%, #c5d4e9 100%)" },
+    { id: 5, title: "3BR Sunridge Ranch", type: "single-family", location: "Sunridge Estates", beds: "3", baths: "2", features: "Pet Friendly, Fenced Yard", rent: "1,450", status: "rented", emoji: "🏡", gradient: "linear-gradient(135deg, #e0eaf5 0%, #cdd9eb 100%)" },
+    { id: 6, title: "1BR Lakeview Unit", type: "apartment", location: "Lakeview Gardens", beds: "1", baths: "1", features: "Pool, Nature Views", rent: "975", status: "rented", emoji: "🏢", gradient: "linear-gradient(135deg, #dce6f3 0%, #c9d8ea 100%)" }
+  ],
+  hero: { eyebrow: "Trusted Rental Property Management", title: "Find Your Next Home with Us", sub: "We offer quality single-family homes and apartment units in a community you'll love. Browse our properties and submit your application — it only takes a few minutes.", btnPrimary: "Start Your Application", btnSecondary: "View Our Properties" },
+  contact: { phone: "(555) 000-1234", email: "info@lendinghandrentals.com", hours: "Mon–Fri 9am–6pm · Sat 10am–4pm", area: "Metro Area & Surrounding Suburbs" },
+  banner: { visible: true, text: "Ready to rent with us? Submit your application today — we respond within 24 hours.", btn: "Apply Now →" },
+  about: { title: "A Landlord You Can Trust", p1: "Lending Hand Rentals is a small, family-run property company built on the belief that every tenant deserves quality housing and a landlord who genuinely cares. We're not a big corporation — we're your neighbors.", p2: "We maintain our properties to high standards and build real, lasting relationships with our tenants. When something needs fixing, we respond fast. When you have a question, we pick up the phone." },
+  settings: { siteName: "Lending Hand Rentals", siteTagline: "Quality Homes & Apartments", responseTime: "24 hours", showRentedNotice: true, showFilters: true, showTestimonials: true, showHowItWorks: true }
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let state = {};
+
+async function loadState() {
+  // Try Netlify Function first (synced live data)
+  try {
+    const res = await fetch('/.netlify/functions/save-data');
+    if (res.ok) {
+      const text = await res.text();
+      state = JSON.parse(text);
+      localStorage.setItem('lhrAdminData', text);
+      console.log('✅ Loaded from Netlify Function');
+      return;
+    }
+  } catch(e) { console.warn('Function load failed, using local', e); }
+  // Fallback to localStorage
+  const saved = localStorage.getItem('lhrAdminData');
+  state = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULTS));
+}
+
+async function saveState() {
+  const data = JSON.stringify(state);
+  // Save locally as backup
+  localStorage.setItem('lhrAdminData', data);
+  localStorage.setItem('lhrSiteData', data);
+  // Save via Netlify Function so live site updates for everyone
+  try {
+    const res = await fetch('/.netlify/functions/save-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: data
+    });
+    if (res.ok) {
+      console.log('✅ Saved to live site via Function');
+      return true;
+    } else {
+      const txt = await res.text();
+      console.warn('Function save failed:', res.status, txt);
+    }
+  } catch(e) { console.warn('Function save error:', e); }
+  return false;
+}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+const tabTitles = { dashboard: 'Dashboard', listings: 'Listings', hero: 'Hero Section', contact: 'Contact Info', banner: 'Apply Banner', about: 'About Section', settings: 'Site Settings' };
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('pageTitle').textContent = tabTitles[name] || name;
+  if (name === 'dashboard') updateDashboard();
+}
+
+// ═══════════════════════════════════════════
+// POPULATE FORMS
+// ═══════════════════════════════════════════
+function populateForms() {
+  // Hero
+  setVal('heroEyebrow', state.hero.eyebrow);
+  setVal('heroTitle', state.hero.title);
+  setVal('heroSub', state.hero.sub);
+  setVal('heroBtnPrimary', state.hero.btnPrimary);
+  setVal('heroBtnSecondary', state.hero.btnSecondary);
+  // Contact
+  setVal('contactPhone', state.contact.phone);
+  setVal('contactEmail', state.contact.email);
+  setVal('contactHours', state.contact.hours);
+  setVal('contactArea', state.contact.area);
+  // Banner
+  document.getElementById('bannerVisible').checked = state.banner.visible;
+  setVal('bannerText', state.banner.text);
+  setVal('bannerBtn', state.banner.btn);
+  // About
+  setVal('aboutTitle', state.about.title);
+  setVal('aboutP1', state.about.p1);
+  setVal('aboutP2', state.about.p2);
+  // Settings
+  setVal('siteName', state.settings.siteName);
+  setVal('siteTagline', state.settings.siteTagline);
+  setVal('responseTime', state.settings.responseTime);
+  document.getElementById('showRentedNotice').checked = state.settings.showRentedNotice;
+  document.getElementById('showFilters').checked = state.settings.showFilters;
+  document.getElementById('showTestimonials').checked = state.settings.showTestimonials;
+  document.getElementById('showHowItWorks').checked = state.settings.showHowItWorks;
+  // Listings
+  renderListings();
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val || '';
+}
+
+// ═══════════════════════════════════════════
+// LISTINGS EDITOR
+// ═══════════════════════════════════════════
+function renderListings() {
+  const container = document.getElementById('listingsEditor');
+  container.innerHTML = '';
+  state.listings.forEach((l, i) => {
+    container.appendChild(createListingEl(l, i));
+  });
+}
+
+function createListingEl(l, i) {
+  const div = document.createElement('div');
+  div.className = 'listing-item';
+  div.dataset.id = l.id;
+  const statusClass = { rented: 'status-rented', available: 'status-available', soon: 'status-soon' }[l.status] || 'status-rented';
+  const statusLabel = { rented: 'Currently Rented', available: 'Available Now', soon: 'Coming Soon' }[l.status] || l.status;
+
+  div.innerHTML = `
+    <div class="listing-item-header" onclick="toggleListingItem(this)">
+      <span class="listing-drag">⠿</span>
+      <div class="listing-title-preview">
+        <strong>${l.emoji || '🏠'} ${l.title || 'Untitled Listing'}</strong>
+        <span>${l.type === 'single-family' ? 'Single-Family' : 'Apartment'} · $${l.rent}/mo</span>
+      </div>
+      <span class="status-pill ${statusClass}">${statusLabel}</span>
+      <span class="listing-chevron">▾</span>
+    </div>
+    <div class="listing-item-body">
+      <div class="form-row">
+        <div class="field">
+          <label>Property Name / Title</label>
+          <input type="text" value="${esc(l.title)}" onchange="updateListing(${l.id}, 'title', this.value); this.closest('.listing-item').querySelector('strong').textContent = '${l.emoji || '🏠'} ' + this.value" />
+        </div>
+        <div class="field">
+          <label>Property Type</label>
+          <select onchange="updateListing(${l.id}, 'type', this.value)">
+            <option value="single-family" ${l.type==='single-family'?'selected':''}>Single-Family Home</option>
+            <option value="apartment" ${l.type==='apartment'?'selected':''}>Apartment</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Location / Neighborhood</label>
+          <input type="text" value="${esc(l.location)}" onchange="updateListing(${l.id}, 'location', this.value)" />
+        </div>
+        <div class="field">
+          <label>Monthly Rent (numbers only, e.g. 1650)</label>
+          <input type="text" value="${esc(l.rent)}" onchange="updateListing(${l.id}, 'rent', this.value)" />
+        </div>
+      </div>
+      <div class="form-row thirds">
+        <div class="field">
+          <label>Bedrooms</label>
+          <input type="text" value="${esc(l.beds)}" placeholder="3" onchange="updateListing(${l.id}, 'beds', this.value)" />
+        </div>
+        <div class="field">
+          <label>Bathrooms</label>
+          <input type="text" value="${esc(l.baths)}" placeholder="2" onchange="updateListing(${l.id}, 'baths', this.value)" />
+        </div>
+        <div class="field">
+          <label>Emoji Icon</label>
+          <select onchange="updateListing(${l.id}, 'emoji', this.value)">
+            <option ${l.emoji==='🏡'?'selected':''}>🏡</option>
+            <option ${l.emoji==='🏠'?'selected':''}>🏠</option>
+            <option ${l.emoji==='🏢'?'selected':''}>🏢</option>
+            <option ${l.emoji==='🏙️'?'selected':''}>🏙️</option>
+            <option ${l.emoji==='🏘️'?'selected':''}>🏘️</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field">
+          <label>Features (comma-separated, e.g. Garage, Yard, Pet Friendly)</label>
+          <input type="text" value="${esc(l.features)}" placeholder="Garage, Yard, Pet Friendly" onchange="updateListing(${l.id}, 'features', this.value)" />
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field">
+          <label>Availability Status</label>
+          <select onchange="updateListing(${l.id}, 'status', this.value); refreshStatusPill(this, ${l.id})">
+            <option value="rented" ${l.status==='rented'?'selected':''}>Currently Rented</option>
+            <option value="available" ${l.status==='available'?'selected':''}>Available Now</option>
+            <option value="soon" ${l.status==='soon'?'selected':''}>Coming Soon</option>
+          </select>
+        </div>
+      </div>
+      <div class="listing-actions">
+        <button class="btn btn-danger btn-sm" onclick="deleteListing(${l.id})">🗑️ Remove Listing</button>
+        <button class="btn btn-outline btn-sm" onclick="moveListing(${l.id}, -1)">↑ Move Up</button>
+        <button class="btn btn-outline btn-sm" onclick="moveListing(${l.id}, 1)">↓ Move Down</button>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function toggleListingItem(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+function esc(str) {
+  return (str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function updateListing(id, key, value) {
+  const l = state.listings.find(x => x.id === id);
+  if (l) l[key] = value;
+}
+
+function refreshStatusPill(select, id) {
+  const pill = select.closest('.listing-item').querySelector('.status-pill');
+  const statusClass = { rented: 'status-rented', available: 'status-available', soon: 'status-soon' }[select.value];
+  const statusLabel = { rented: 'Currently Rented', available: 'Available Now', soon: 'Coming Soon' }[select.value];
+  pill.className = 'status-pill ' + statusClass;
+  pill.textContent = statusLabel;
+}
+
+function addListing() {
+  const newId = Date.now();
+  state.listings.push({
+    id: newId, title: "New Property", type: "single-family",
+    location: "Neighborhood", beds: "3", baths: "2",
+    features: "Garage, Yard", rent: "1,500",
+    status: "available", emoji: "🏠",
+    gradient: "linear-gradient(135deg, #e3eaf4 0%, #d0dae8 100%)"
+  });
+  renderListings();
+  // Open the new item
+  const items = document.querySelectorAll('.listing-item');
+  items[items.length - 1].classList.add('open');
+  items[items.length - 1].scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteListing(id) {
+  if (!confirm('Remove this listing?')) return;
+  state.listings = state.listings.filter(l => l.id !== id);
+  renderListings();
+}
+
+function moveListing(id, dir) {
+  const idx = state.listings.findIndex(l => l.id === id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.listings.length) return;
+  [state.listings[idx], state.listings[newIdx]] = [state.listings[newIdx], state.listings[idx]];
+  renderListings();
+}
+
+// ═══════════════════════════════════════════
+// SAVE ALL
+// ═══════════════════════════════════════════
+function collectForms() {
+  state.hero = {
+    eyebrow: getVal('heroEyebrow'),
+    title: getVal('heroTitle'),
+    sub: getVal('heroSub'),
+    btnPrimary: getVal('heroBtnPrimary'),
+    btnSecondary: getVal('heroBtnSecondary')
+  };
+  state.contact = {
+    phone: getVal('contactPhone'),
+    email: getVal('contactEmail'),
+    hours: getVal('contactHours'),
+    area: getVal('contactArea')
+  };
+  state.banner = {
+    visible: document.getElementById('bannerVisible').checked,
+    text: getVal('bannerText'),
+    btn: getVal('bannerBtn')
+  };
+  state.about = {
+    title: getVal('aboutTitle'),
+    p1: getVal('aboutP1'),
+    p2: getVal('aboutP2')
+  };
+  state.settings = {
+    siteName: getVal('siteName'),
+    siteTagline: getVal('siteTagline'),
+    responseTime: getVal('responseTime'),
+    showRentedNotice: document.getElementById('showRentedNotice').checked,
+    showFilters: document.getElementById('showFilters').checked,
+    showTestimonials: document.getElementById('showTestimonials').checked,
+    showHowItWorks: document.getElementById('showHowItWorks').checked
+  };
+}
+
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+async function saveAll() {
+  collectForms();
+  const btn = document.querySelector('.topbar-actions .btn-primary');
+  btn.textContent = '⏳ Saving…';
+  btn.disabled = true;
+  const ok = await saveState();
+  const ind = document.getElementById('saveIndicator');
+  ind.textContent = ok ? '✅ Saved to live site!' : '✅ Saved locally';
+  ind.classList.add('show');
+  setTimeout(() => { ind.classList.remove('show'); btn.textContent = '💾 Save Changes'; btn.disabled = false; }, 3000);
+  updateDashboard();
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function updateDashboard() {
+  const total = state.listings.length;
+  const rented = state.listings.filter(l => l.status === 'rented').length;
+  const available = state.listings.filter(l => l.status === 'available').length;
+  const soon = state.listings.filter(l => l.status === 'soon').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statRented').textContent = rented;
+  document.getElementById('statAvailable').textContent = available;
+  document.getElementById('statSoon').textContent = soon;
+
+  // Recent listings preview
+  const container = document.getElementById('dashListings');
+  container.innerHTML = '';
+  state.listings.slice(0, 5).forEach(l => {
+    const statusClass = { rented: 'status-rented', available: 'status-available', soon: 'status-soon' }[l.status];
+    const statusLabel = { rented: 'Currently Rented', available: 'Available Now', soon: 'Coming Soon' }[l.status];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.65rem 0; border-bottom:1px solid var(--sand);';
+    row.innerHTML = `
+      <span style="font-size:0.88rem; font-weight:500;">${l.emoji} ${l.title}</span>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span style="font-size:0.82rem; color:var(--muted)">$${l.rent}/mo</span>
+        <span class="status-pill ${statusClass}" style="font-size:0.65rem">${statusLabel}</span>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════
+function exportData() {
+  collectForms();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lhr-settings.json';
+  a.click();
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      state = JSON.parse(e.target.result);
+      saveState();
+      populateForms();
+      updateDashboard();
+      alert('Settings imported successfully!');
+    } catch {
+      alert('Invalid file. Please use a JSON file exported from this admin panel.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+// Auto-save handled by change event above
+// Init — load from Netlify then populate
+(async () => {
+  await loadState();
+  populateForms();
+  updateDashboard();
+})();
+
+// Auto-save on input changes (debounced)
+let saveTimer = null;
+document.addEventListener('change', () => {
+  collectForms();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveState(), 800);
+});
+</script>
+</body>
+</html>
