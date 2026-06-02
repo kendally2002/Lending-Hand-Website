@@ -1,5 +1,3 @@
-const { getStore } = require('@netlify/blobs');
-
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -7,56 +5,52 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 
-  // Handle preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
   try {
-    const store = getStore('site-data');
+    // Use Netlify Blobs via REST API (no package needed)
+    const siteId = process.env.SITE_ID || 'e349ba85-12f3-41a5-a0cd-68a9fae29143';
+    const token  = process.env.NETLIFY_TOKEN || 'nfp_6i3L1H4nEo6iqSRiN3ZVNnY8weGXPFXi63d2';
+    const blobUrl = `https://api.netlify.com/api/v1/sites/${siteId}/blobs/lhr-site-data`;
 
-    // GET — load data
     if (event.httpMethod === 'GET') {
-      try {
-        const data = await store.get('lhr-site-data');
-        if (data) {
-          return {
-            statusCode: 200,
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: data
-          };
-        } else {
-          return { statusCode: 404, headers, body: JSON.stringify({ error: 'No data yet' }) };
-        }
-      } catch (e) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: 'No data yet' }) };
+      const res = await fetch(blobUrl, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.text();
+        return {
+          statusCode: 200,
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: data
+        };
       }
+      return { statusCode: 404, headers, body: JSON.stringify({ error: 'No data yet' }) };
     }
 
-    // POST — save data
     if (event.httpMethod === 'POST') {
       const body = event.body;
-      if (!body) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data provided' }) };
+      if (!body) return { statusCode: 400, headers, body: JSON.stringify({ error: 'No data' }) };
+      JSON.parse(body); // validate JSON
+      const res = await fetch(blobUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: body
+      });
+      if (res.ok) {
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
       }
-      // Validate it's valid JSON
-      JSON.parse(body);
-      await store.set('lhr-site-data', body);
-      return {
-        statusCode: 200,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true })
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Save failed' }) };
     }
 
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   } catch (err) {
-    console.error('Function error:', err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
